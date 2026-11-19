@@ -1,0 +1,1 @@
+Local modification, 2026-11-11: services/installation_proxy.rs preserves device Error, ErrorDetail and ErrorDescription during installation completion, with parser regression tests. Upstream: idevice 0.1.68, https://github.com/jkcoxson/idevice (MIT). Existing upstream copyright and license notices remain applicable.
