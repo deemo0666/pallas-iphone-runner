@@ -11,6 +11,7 @@ trap 'rm -rf "$work"' EXIT
 source "$scripts/mac-installer-steps.sh"
 stage="$work/Pallas-Runner"
 mkdir -p "$stage/Kit"
+cp "$scripts/../../LICENSE.md" "$stage/"
 cp "$runner" "$stage/Kit/ScreenRunner.ipa"
 cp "$scripts/RunnerHost.json" "$stage/Kit/"
 /usr/bin/python3 - "$stage" <<'PY'

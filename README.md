@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="assets/pallas.png" alt="Pallas 猫吉祥物" width="144">
+</p>
+
 # Pallas iPhone Runner
 
-Runner 是 Pallas Agent 的 iPhone 操控组件，负责读屏、点按、输入和启动 App。它作为 `ScreenRunner.ipa` 独立发布。Pallas Agent 在手机上授权一轮操作，Runner 在本机执行。
+Pallas iPhone Runner 是 Pallas Agent 的独立 iPhone 操控组件，负责读屏、点按、输入和启动 App。Pallas Agent 在手机上授权一轮操作，Runner 在本机执行。
 
-[下载 Runner v1.0.0 和 macOS 安装套件](https://github.com/deemo0666/pallas-iphone-runner/releases/tag/v1.0.0)
+[下载 Pallas iPhone Runner v1.0.0 和 macOS 安装套件](https://github.com/deemo0666/pallas-iphone-runner/releases/tag/v1.0.0)
 
 ## 安装
 
@@ -22,4 +26,6 @@ rustup target add aarch64-apple-darwin x86_64-apple-darwin
 bash Tools/ScreenRunner/package-runner-kit.sh ./ScreenRunner.ipa dist/Pallas-Runner-macos-kit.zip
 ```
 
-安装套件内的 `InstallerServiceSource.zip` 附有重新链接说明和相关第三方许可。
+## 许可
+
+项目自有源码可供获准访问者查阅，版权所有。官方安装包的使用授权和安装服务的 LGPL 权利见[项目许可](LICENSE.md)。安装套件内的 `InstallerServiceSource.zip` 附有重建和重新链接说明。
