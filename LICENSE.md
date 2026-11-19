@@ -1,10 +1,10 @@
 # Pallas iPhone Runner 许可
 
-Copyright © 2026 Pallas iPhone Runner authors. All rights reserved.
+Copyright © 2026 deemo0666. All rights reserved.
 
 ## 适用范围
 
-本许可适用于 Pallas iPhone Runner 作者拥有版权、随本许可提供的源码、文档、品牌素材和软件包。第三方材料、单独授权的共享代码和已按其他条款有效授权的版本，分别适用其各自的许可。
+本许可适用于 deemo0666 拥有版权、随本许可提供的源码、文档、品牌素材和软件包。第三方材料、单独授权的共享代码和已按其他条款有效授权的版本，分别适用其各自的许可。
 
 ## 源码查阅
 
