@@ -1,0 +1,40 @@
+[package]
+name = "dsh-installer-service"
+version = "1.1.2"
+edition = "2024"
+publish = false
+
+[dependencies]
+isideload = { git = "https://github.com/nab138/isideload", rev = "326e56229d0727cb6e7b34c8cf03e37e2cd3e17d" }
+idevice = { version = "=0.1.68", default-features = false, features = ["ring", "usbmuxd", "pair", "afc", "installation_proxy", "amfi", "house_arrest", "mobile_image_mounter", "tss"] }
+apple-codesign-quick = "=0.1.0"
+tokio = { version = "1.49", features = ["rt-multi-thread", "macros", "time", "signal", "sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+plist = "1.8"
+rootcause = "0.12"
+keyring = { version = "3.6.3", features = ["apple-native"] }
+security-framework = "=3.7.0"
+security-framework-sys = "2.17"
+core-foundation = "0.10"
+x509-cert = "0.2"
+rsa = "0.9"
+sha2 = "0.11"
+hex = "0.4"
+tempfile = "3"
+walkdir = "2"
+fs2 = "0.4"
+chrono = "0.4"
+libc = "0.2"
+zeroize = "1"
+uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+
+
+[patch.crates-io]
+idevice = { path = "vendor/idevice" }
