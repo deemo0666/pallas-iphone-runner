@@ -1,24 +1,26 @@
 <p align="center">
-  <img src="assets/pallas.png" alt="Pallas 猫吉祥物" width="144">
+  <img src="assets/pallas.png" alt="Pallas cat mascot" width="144">
 </p>
 
 # Pallas iPhone Runner
 
-Pallas iPhone Runner 是 Pallas Agent 的独立 iPhone 操控组件，负责读屏、点按、输入和启动 App。Pallas Agent 在手机上授权一轮操作，Runner 在本机执行。
+English · [简体中文](README.zh-CN.md)
 
-[下载 Pallas iPhone Runner v1.0.0 和 macOS 安装套件](https://github.com/deemo0666/pallas-iphone-runner/releases/tag/v1.0.0)
+Pallas iPhone Runner is the standalone phone-control component of [Pallas Agent](https://github.com/deemo0666/pallas-agent). It reads the screen, taps, types and opens apps. Pallas Agent authorizes one round of actions on the phone, and the Runner carries it out on the same device.
 
-## 安装
+[Download Pallas iPhone Runner v1.0.0 and the macOS installer kit](https://github.com/deemo0666/pallas-iphone-runner/releases/tag/v1.0.0)
 
-在 iPhone 上先安装支持「允许电脑操控」的 Pallas Agent。Runner `1.0 (1)` 对应 Pallas Agent `0.5.1`。同团队侧载安装需要 `0.5.1 (18)` 和匹配的共享权限。通过 [DSH 插件](https://github.com/deemo0666/pallas-iphone-dsh-plugin) 的「安装与修复」可以给已装好 Pallas Agent 的 iPhone 签名安装 Runner。
+## Installation
 
-## 源码与打包
+First install a Pallas Agent build that has **Allow Computer Control** on the iPhone. Runner `1.0 (1)` pairs with Pallas Agent `0.5.1`. Sideloading under the same team needs `0.5.1 (18)` with the matching shared entitlements. The **Install and repair** page of the [DSH plugin](https://github.com/deemo0666/pallas-iphone-dsh-plugin) can sign and install the Runner on an iPhone that already has Pallas Agent.
 
-- [`Runner`](Tools/ScreenRunner/Runner) 是 iOS XCTest Runner。[`Shared`](Tools/ScreenRunner/Shared) 是 Pallas Agent 与 Runner 共用的本机通信代码。
-- [`NativeInstaller`](Tools/ScreenRunner/NativeInstaller) 是 Mac 的 USB 安装服务，使用 Cargo.lock 锁定依赖。使用 Swift 的设备端代码在完整的 Pallas Agent 开发工程里通过 `DSHScreen` 的 `build-for-testing` 构建。
-- [`RunnerHost.json`](Tools/ScreenRunner/RunnerHost.json) 是当前构建所需的 Pallas Agent 兼容信息。
+## Source and packaging
 
-已有 `ScreenRunner.ipa` 时，可以在带 Xcode 的 Mac 上生成供 DSH 插件使用的安装套件。打包会先运行签名密钥的保存与重复读取回归检查，再构建通用的 Mac 安装服务。
+- [`Runner`](Tools/ScreenRunner/Runner) is the iOS XCTest runner. [`Shared`](Tools/ScreenRunner/Shared) is the on-device communication code shared by Pallas Agent and the Runner.
+- [`NativeInstaller`](Tools/ScreenRunner/NativeInstaller) is the Mac USB installer service; its dependencies are pinned by Cargo.lock. The Swift device code is built with `build-for-testing` of the `DSHScreen` scheme in the full Pallas Agent project.
+- [`RunnerHost.json`](Tools/ScreenRunner/RunnerHost.json) holds the Pallas Agent compatibility data for the current build.
+
+With a `ScreenRunner.ipa` in hand, a Mac with Xcode can build the installer kit used by the DSH plugin. Packaging first runs the regression check that saves and re-reads the signing key, then builds the universal Mac installer service.
 
 ```sh
 mkdir -p dist
@@ -26,6 +28,8 @@ rustup target add aarch64-apple-darwin x86_64-apple-darwin
 bash Tools/ScreenRunner/package-runner-kit.sh ./ScreenRunner.ipa dist/Pallas-Runner-macos-kit.zip
 ```
 
-## 许可
+## Copyright and license
 
-项目自有源码可供获准访问者查阅，版权所有。官方安装包的使用授权和安装服务的 LGPL 权利见[项目许可](LICENSE.md)。安装套件内的 `InstallerServiceSource.zip` 附有重建和重新链接说明。
+Copyright © 2026 deemo0666. All rights reserved.
+
+The project's own source code is available for review by people granted access; it is not open source. Use of the official packages and your LGPL rights in the installer service are set out in [LICENSE.md](LICENSE.md). `InstallerServiceSource.zip` in the installer kit includes instructions for rebuilding and relinking.
