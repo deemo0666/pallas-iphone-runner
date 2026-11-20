@@ -1,19 +1,21 @@
-# Pallas iPhone Runner 许可
+# Pallas iPhone Runner License
 
 Copyright © 2026 deemo0666. All rights reserved.
 
-## 适用范围
+A Chinese translation is in [LICENSE.zh-CN.md](LICENSE.zh-CN.md). If the two differ, this English version governs.
 
-本许可适用于 deemo0666 拥有版权、随本许可提供的源码、文档、品牌素材和软件包。第三方材料、单独授权的共享代码和已按其他条款有效授权的版本，分别适用其各自的许可。
+## Scope
 
-## 源码查阅
+This license covers the source code, documentation, brand assets and software packages that deemo0666 owns the copyright to and provides with this license. Third-party material, shared code licensed separately, and releases validly licensed under other terms are each governed by their own licenses.
 
-获准访问仓库或取得源码包的人员，可以下载、阅读和审查源码。编译、修改、复用或再分发源码和衍生作品，须有版权所有人的书面授权，或由本许可、其他有效许可、适用法律或托管平台条款另行允许。
+## Reviewing the source
 
-## 官方安装包
+People granted access to the repository or given a source package may download, read and review the source. Compiling, modifying, reusing or redistributing the source or derivative works requires written permission from the copyright holder, unless this license, another valid license, applicable law or the hosting platform's terms allow it.
 
-获准取得官方 Runner 和 macOS 安装服务的人员，可以在自己拥有或管理的设备上安装和使用，亦可按随包说明重签和配置。转授权、再分发软件包或另行使用 Pallas 品牌素材，须有版权所有人的书面授权，或由其他有效许可或适用法律另行允许。
+## Official packages
 
-## 安装服务的 LGPL 权利
+People who obtain the official Runner and macOS installer service may install and use them on devices they own or manage, and may re-sign and configure them as described in the included instructions. Sublicensing, redistributing the packages or otherwise using the Pallas brand assets requires written permission from the copyright holder, unless another valid license or applicable law allows it.
 
-安装服务随附的 LGPL 组件适用其原许可。收到含该组件的安装服务的用户，可以为自用修改和重建安装服务，包括将其与修改后的 LGPL 库重新链接，也可以为调试这些修改对安装服务进行逆向工程。安装套件的 `InstallerServiceSource.zip` 提供源码和重建说明，`ThirdPartyNotices.txt` 收录第三方许可。
+## LGPL rights in the installer service
+
+LGPL components included with the installer service are governed by their original licenses. Users who receive an installer service containing those components may modify and rebuild it for their own use, including relinking it with modified LGPL libraries, and may reverse-engineer the installer service to debug such modifications. `InstallerServiceSource.zip` in the installer kit provides the source and rebuild instructions, and `ThirdPartyNotices.txt` contains the third-party licenses.
