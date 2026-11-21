@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parent
 metadata = json.loads(subprocess.check_output([
     "cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", "aarch64-apple-darwin", "--manifest-path", str(root / "Cargo.toml")
 ]))
-parts = ["Pallas iPhone Runner — third-party notices\n\n"
+parts = ["Pallas Agent Installer — third-party notices\n\n"
          "Apple authentication and signing: isideload (MIT), nab138.\n"
          "USB device communication: idevice (MIT), jkcoxson and contributors.\n"
          "Bundle signing: apple-codesign-quick; see its license below.\n"
@@ -50,7 +50,6 @@ Path(sys.argv[1]).write_text("".join(parts))
 # source so recipients can rebuild/relink the helper with a modified library.
 source_zip = Path(sys.argv[1]).with_name("InstallerServiceSource.zip")
 with zipfile.ZipFile(source_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-    archive.write(root.parents[2] / "LICENSE.md", "NativeInstaller/LICENSE.md")
     for path in sorted(root.rglob("*")):
         if path.is_file() and not {"target", "__pycache__", ".git"}.intersection(path.relative_to(root).parts):
             archive.write(path, "NativeInstaller/" + path.relative_to(root).as_posix())
@@ -71,7 +70,8 @@ The complete apple-codesign-quick source is in lgpl-source. To rebuild with a mo
 copy, add this entry to the existing [patch.crates-io] section of Cargo.toml:
   apple-codesign-quick = { path = "lgpl-source/apple-codesign-quick-0.1.0" }
 Then build without --locked once to update the lockfile for that local source.
-Combine the two output executables with lipo -create, ad-hoc sign the result, and
-replace dsh-installer-service in your local copy of the kit. See LICENSE.md for
-permissions to modify and relink the service for your own use.
+Combine the two output executables with lipo -create, replace Contents/MacOS/
+dsh-installer-service in a copy of the installer, and ad-hoc sign the helper and app.
+The source is provided for modifying and relinking the service. The iOS apps are
+separate works and are not needed to rebuild the service.
 """)

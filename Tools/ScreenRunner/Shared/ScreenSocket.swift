@@ -18,6 +18,8 @@ enum RunnerFailure: String, Error {
 struct RunnerReply: Codable {
     var observation: PhoneObservation?
     var error: String?
+    /// For `watch`: the notifications seen since the last reply, one text each.
+    var notices: [String]?
 }
 
 /// The OS restricts this Unix socket to the two signed members of the App Group.
@@ -56,10 +58,13 @@ final class ScreenSocket: @unchecked Sendable {
     /// port, so iOS does not hold it back the way it defers a backgrounded host's timers.
     static var readyName: String { hostID + ".screen.ready" }
     private let fd: Int32
+    /// What `readTimeout` last set, in seconds.
+    private(set) var readSeconds: Int
     /// The engine gives a gesture 55 seconds. Reading a long list of a busy app can take most of that.
     init(_ fd: Int32, readTimeout: Int = 50) throws {
         guard fd >= 0 else { throw RunnerFailure.unavailable }
         self.fd = fd
+        readSeconds = readTimeout
         var one: Int32 = 1
         _ = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, socklen_t(MemoryLayout.size(ofValue: one)))
         _ = fcntl(fd, F_SETFD, FD_CLOEXEC)
@@ -145,6 +150,7 @@ final class ScreenSocket: @unchecked Sendable {
 
     /// How long `receive` waits from now on.
     func readTimeout(_ seconds: Int) {
+        readSeconds = seconds
         var wait = timeval(tv_sec: seconds, tv_usec: 0)
         _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &wait, socklen_t(MemoryLayout.size(ofValue: wait)))
     }

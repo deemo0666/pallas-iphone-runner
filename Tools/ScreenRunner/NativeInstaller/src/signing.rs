@@ -21,7 +21,6 @@ use std::{
 const GROUPS: &str = "com.apple.security.application-groups";
 const RUNNER_IPA: &str = "ScreenRunner.ipa";
 const RUNNER_HOST: &str = "RunnerHost.json";
-const RUNNER_DISPLAY_NAME: &str = "Pallas iPhone Runner";
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Identity {
@@ -446,8 +445,8 @@ pub fn rewrite(app: &Path, identity: &Identity, host: bool) -> Result<()> {
                 queries.push(identity.scheme.clone().into());
             }
         } else if path == app {
-            fields.insert("CFBundleDisplayName".into(), RUNNER_DISPLAY_NAME.into());
-            fields.insert("CFBundleName".into(), RUNNER_DISPLAY_NAME.into());
+            fields.insert("CFBundleDisplayName".into(), "Pallas 手机控制".into());
+            fields.insert("CFBundleName".into(), "Pallas 手机控制".into());
             let mut url = Dictionary::new();
             url.insert(
                 "CFBundleURLSchemes".into(),
@@ -879,11 +878,7 @@ mod install_target_tests {
         let rewritten = read_info(&app).unwrap();
         assert_eq!(
             rewritten["CFBundleDisplayName"].as_string(),
-            Some("Pallas iPhone Runner")
-        );
-        assert_eq!(
-            rewritten["CFBundleName"].as_string(),
-            Some("Pallas iPhone Runner")
+            Some("Pallas 手机控制")
         );
         assert_eq!(
             rewritten["CFBundleIdentifier"].as_string(),

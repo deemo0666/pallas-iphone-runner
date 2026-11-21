@@ -21,18 +21,28 @@ final class ScreenRunner: XCTestCase {
         if ScreenSocket.foreignHost != nil || Bundle.main.object(forInfoDictionaryKey: "DSHScreenHosts") != nil {
             guard !links.isEmpty else { throw RunnerFailure.unavailable }
         }
-        let leave = Task { await Self.leaveForegroundWhileWaiting() }
-        let accepted: (client: ScreenSocket, host: String)? = try await Task.detached(operation: {
-            links.isEmpty ? try ScreenSocket.acceptClient().map { ($0, ScreenSocket.hostID) } : try ScreenSocket.acceptClient(links: links)
-        }).value
-        leave.cancel()
-        guard let (client, host) = accepted else { return }
-        defer { client.stop() }
-        // An app that stands still (one waiting for a paste question, one that hangs) otherwise holds
-        // every request to it for a minute. Ten seconds is twenty times the slowest tree read so far
-        // (a chat list of thousands, 0.5 s on wode16).
-        Self.log.notice("ax timeout 10 s: \(DSHSetAXTimeout(10) ? "set" : "unavailable", privacy: .public)")
-        await serve(client, host: host, hosts: links.map(\.host))
+        var first = true
+        // After a connection ends the runner waits for the next one, as long as for the first: watching
+        // notifications hands the runner to a phone-control turn and takes it back, without starting it again.
+        while true {
+            let leave = Task { await Self.leaveForegroundWhileWaiting() }
+            let accepted: (client: ScreenSocket, host: String)? = try await Task.detached(operation: {
+                links.isEmpty ? try ScreenSocket.acceptClient().map { ($0, ScreenSocket.hostID) } : try ScreenSocket.acceptClient(links: links)
+            }).value
+            leave.cancel()
+            guard let (client, host) = accepted else { return }
+            if first {
+                first = false
+                // An app that stands still (one waiting for a paste question, one that hangs) otherwise holds
+                // every request to it for a minute. Ten seconds is twenty times the slowest tree read so far
+                // (a chat list of thousands, 0.5 s on a test iPhone).
+                Self.log.notice("ax timeout 10 s: \(DSHSetAXTimeout(10) ? "set" : "unavailable", privacy: .public)")
+            } else {
+                Self.log.notice("next connection")
+            }
+            await serve(client, host: host, hosts: links.map(\.host))
+            client.stop()
+        }
     }
 
     /// XCTest presses Home once, right after it has turned on Automation Mode. When iOS first asks
@@ -81,7 +91,8 @@ final class ScreenRunner: XCTestCase {
         /// The name of an `open` whose search page never came: its observation of the Home screen
         /// is only to be looked at. No target is kept after it, so nothing there can be touched.
         var missing: String?
-        while let cmd = try? await Task.detached(operation: { try client.receive(PhoneCommand.self) }).value {
+        let watch = NoticeWatch()
+        while let cmd = await nextCommand(client, host: host, watch: watch) {
             var response = RunnerReply()
             var stages: [String] = []
             /// The command's touch was already made: a tap that chose an app on the search page.
@@ -98,6 +109,32 @@ final class ScreenRunner: XCTestCase {
             work: do {
                 let issues = issueLock.withLock { issueCount }
                 guard client.connected else { throw RunnerFailure.disconnected }
+                if cmd.action == "watch" {
+                    // 看通知: report the notifications SpringBoard shows. Nothing is touched,
+                    // except putting back the app that was in front when Pallas Agent was brought back.
+                    watch.revive = cmd.revive
+                    if watch.revived {
+                        watch.revived = false
+                        if let away = watch.away, DSHRequestScreenApp(XCUIApplication(bundleIdentifier: away), away) {
+                            mark("back to " + away)
+                        } else {
+                            XCUIDevice.shared.press(.home)
+                            mark("back home")
+                        }
+                        watch.away = nil
+                    }
+                    let limit = ContinuousClock.now + .seconds(max(1, min(cmd.seconds ?? 10, 40)))
+                    while watch.buffer.isEmpty, ContinuousClock.now < limit, client.connected {
+                        watch.look()
+                        if watch.buffer.isEmpty { try? await Task.sleep(for: .milliseconds(500)) }
+                    }
+                    response.notices = watch.buffer
+                    watch.buffer = []
+                    if !UIApplication.shared.isProtectedDataAvailable { stages.append("locked") }
+                    stages.append("looks \(watch.looks) slowest \(watch.slowest) ms")
+                    mark("watch \(response.notices?.count ?? 0)")
+                    break work
+                }
                 guard UIApplication.shared.isProtectedDataAvailable else { throw RunnerFailure.deviceLocked }
                 if cmd.action == "return" {
                     // The turn ended or waits for the person: put Pallas Agent back in front. Nothing is observed.
@@ -295,7 +332,7 @@ final class ScreenRunner: XCTestCase {
                             // Any other page whose controls were listed: the control is still under
                             // the point, so the touch is sent there. One look at the point replaces
                             // the live query below, which reads the tree again for every property
-                            // (wode16, Settings: 0.4 s to find and 0.5 s to tap). When the look does
+                            // (test iPhone, Settings: 0.4 s to find and 0.5 s to tap). When the look does
                             // not find the control, the query still decides.
                             try requireForeground(app, client)
                             mark("find at point")
@@ -358,7 +395,7 @@ final class ScreenRunner: XCTestCase {
                         }
                         while !rest.isEmpty {
                             try requireForeground(app, client)
-                            // Each event costs about a third of a second besides its keys (wode16: 384 ms
+                            // Each event costs about a third of a second besides its keys (test iPhone: 384 ms
                             // for three characters), so three at a time made a page of text take minutes.
                             // Forty are typed in two thirds of a second, which is then how often the
                             // app in front is looked at.
@@ -474,6 +511,78 @@ final class ScreenRunner: XCTestCase {
             do { try await Task.detached { try client.send(reply) }.value } catch { return }
             let recoverable: [RunnerFailure] = [.screenChanged, .openFailed, .covered, .notIcon]
             if let error = reply.error, !recoverable.map(\.rawValue).contains(error) { return }
+        }
+    }
+
+    /// The next command. After a `watch` asked for it, the runner goes on looking at notifications
+    /// while it waits, and brings the host back to the front once it has been quiet for `revive` seconds.
+    @MainActor private func nextCommand(_ client: ScreenSocket, host: String, watch: NoticeWatch) async -> PhoneCommand? {
+        guard let revive = watch.revive else {
+            return try? await Task.detached(operation: { try client.receive(PhoneCommand.self) }).value
+        }
+        let usual = client.readSeconds
+        defer { client.readTimeout(usual) }
+        client.readTimeout(1)
+        let quiet = ContinuousClock.now
+        while true {
+            do { return try await Task.detached(operation: { try client.receive(PhoneCommand.self) }).value }
+            catch RunnerFailure.timedOut {} catch { return nil }
+            guard client.connected else { return nil }
+            watch.look()
+            let waited = quiet.duration(to: .now)
+            if !watch.revived, waited >= .seconds(revive) {
+                let own = [host, Bundle.main.bundleIdentifier].compactMap { $0 }
+                let shown = DSHActiveApps() ?? []
+                watch.away = shown.first { !own.contains($0) && !Self.searchHosts.contains($0) }
+                watch.revived = DSHRequestScreenApp(XCUIApplication(bundleIdentifier: host), host)
+                let seconds = Int((waited / .milliseconds(1)).rounded()) / 1000
+                Self.log.notice("watch revive after \(seconds, privacy: .public) s: \(watch.revived ? "ok" : "failed", privacy: .public), away \(watch.away ?? "home", privacy: .public), shown \(shown.joined(separator: " "), privacy: .public), locked \(!UIApplication.shared.isProtectedDataAvailable, privacy: .public)")
+                if !watch.revived { watch.away = nil }
+            }
+            if waited >= .seconds(usual + revive) {
+                Self.log.notice("watch: host quiet too long, ending")
+                return nil
+            }
+        }
+    }
+
+    /// 看通知: what SpringBoard shows of other apps' notifications, as banners or on the lock screen.
+    @MainActor final class NoticeWatch {
+        var revive: Int?
+        var revived = false
+        var away: String?
+        var buffer: [String] = []
+        var looks = 0
+        var slowest = 0
+        private var seen: [String: ContinuousClock.Instant] = [:]
+        private var lastIdentifiers = ContinuousClock.now - .seconds(120)
+
+        func look() {
+            guard DSHActiveApps()?.contains("com.apple.springboard") == true else { return }
+            let began = ContinuousClock.now
+            guard let root = try? XCUIApplication(bundleIdentifier: "com.apple.springboard").snapshot() else { return }
+            let all = ScreenRunner.flat(root)
+            looks += 1
+            slowest = max(slowest, Int((began.duration(to: .now) / .milliseconds(1)).rounded()))
+            if lastIdentifiers.duration(to: began) >= .seconds(60) {
+                // What SpringBoard calls its notification views, to find them where they are not banners.
+                lastIdentifiers = began
+                let names = Set(all.map(\.identifier).filter { $0.localizedCaseInsensitiveContains("notif") || $0.localizedCaseInsensitiveContains("lookview") })
+                ScreenRunner.log.notice("watch springboard nodes \(all.count, privacy: .public), ids \(names.sorted().joined(separator: " "), privacy: .public), locked \(!UIApplication.shared.isProtectedDataAvailable, privacy: .public)")
+            }
+            seen = seen.filter { $0.value.duration(to: began) < .seconds(60) }
+            for node in all where node.identifier == "NotificationShortLookView" {
+                var parts: [String] = []
+                for text in [node.label] + ScreenRunner.flat(node).filter({ $0.elementType == .staticText }).map(\.label) {
+                    let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !line.isEmpty, !parts.contains(line) { parts.append(line) }
+                }
+                // The banner's own label first ("WECHAT, now, …"), then its title and body lines.
+                let text = parts.joined(separator: "\u{1F}")
+                guard !text.isEmpty else { continue }
+                if seen[text] == nil { buffer.append(text) }
+                seen[text] = began
+            }
         }
     }
 

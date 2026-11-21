@@ -379,18 +379,15 @@ fn validate_host(
     version: &AppVersion,
     team: &str,
 ) -> Result<()> {
-    if host
-        .get("CFBundleShortVersionString")
-        .and_then(plist::Value::as_string)
-        != Some(&version.version)
-        || host
-            .get("CFBundleVersion")
-            .and_then(plist::Value::as_string)
-            != Some(&version.build)
-    {
+    // The package names the oldest host it works with; newer hosts are fine.
+    if !host_not_older(
+        host.get("CFBundleShortVersionString").and_then(plist::Value::as_string),
+        host.get("CFBundleVersion").and_then(plist::Value::as_string),
+        version,
+    ) {
         return Err(Failure::new(
             "repair_host_version",
-            "主 App 与此安装包版本不同，无法单独补装组件。请使用匹配版本的安装器。",
+            "主 App 版本太旧，无法单独补装组件。请先更新主 App。",
         ));
     }
     let entitlements = host
@@ -415,15 +412,15 @@ fn validate_host(
 }
 
 fn check_store_host(host: &plist::Dictionary, version: &str) -> Result<()> {
-    // The runner and the host must speak the same protocol; builds of one version do.
-    if host
+    // `version` is the oldest host the runner works with; any later one is fine.
+    if !host
         .get("CFBundleShortVersionString")
         .and_then(plist::Value::as_string)
-        != Some(version)
+        .is_some_and(|have| version_at_least(have, version))
     {
         return Err(Failure::new(
             "store_host_version",
-            "主 App 与此安装包版本不同。请更新主 App，或使用匹配版本的安装器。",
+            "主 App 版本太旧，请先更新主 App。",
         ));
     }
     if host
@@ -437,6 +434,31 @@ fn check_store_host(host: &plist::Dictionary, version: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+fn version_parts(value: &str) -> Option<Vec<u64>> {
+    value.split('.').map(|part| part.parse().ok()).collect()
+}
+
+/// Whether dotted version `have` is `want` or later (missing components count as 0).
+fn version_at_least(have: &str, want: &str) -> bool {
+    let (Some(mut have), Some(mut want)) = (version_parts(have), version_parts(want)) else {
+        return false;
+    };
+    let len = have.len().max(want.len());
+    have.resize(len, 0);
+    want.resize(len, 0);
+    have >= want
+}
+
+fn host_not_older(version: Option<&str>, build: Option<&str>, oldest: &AppVersion) -> bool {
+    let Some(version) = version else { return false };
+    if !version_at_least(version, &oldest.version) {
+        return false;
+    }
+    // A later version is enough; the same version needs the same build or a later one.
+    !version_at_least(&oldest.version, version)
+        || build.is_some_and(|build| version_at_least(build, &oldest.build))
 }
 
 fn check_control_pair(ids: &[&str]) -> Result<()> {
@@ -479,7 +501,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn store_host_must_match_the_version_and_accept_a_key_file() {
+    fn store_host_must_be_new_enough_and_accept_a_key_file() {
         let mut host = plist::Dictionary::new();
         host.insert("CFBundleShortVersionString".into(), "0.2.0".into());
         assert_eq!(
@@ -488,8 +510,14 @@ mod tests {
         );
         host.insert("UIFileSharingEnabled".into(), true.into());
         assert!(check_store_host(&host, "0.2.0").is_ok());
+        assert!(check_store_host(&host, "0.1.9").is_ok());
+        assert!(check_store_host(&host, "0.2").is_ok());
         assert_eq!(
             check_store_host(&host, "0.3.0").unwrap_err().code,
+            "store_host_version"
+        );
+        assert_eq!(
+            check_store_host(&host, "0.2.1").unwrap_err().code,
             "store_host_version"
         );
     }
@@ -540,6 +568,10 @@ mod tests {
                 .code,
             "repair_host_identity"
         );
+        host.insert(
+            "DSHScreenRunnerScheme".into(),
+            identity.scheme.clone().into(),
+        );
         host.insert("CFBundleVersion".into(), "1".into());
         assert_eq!(
             validate_host(&host, &identity, &version, "ABCDE12345")
@@ -547,6 +579,20 @@ mod tests {
                 .code,
             "repair_host_version"
         );
+        host.insert("CFBundleShortVersionString".into(), "0.1.9".into());
+        host.insert("CFBundleVersion".into(), "9".into());
+        assert_eq!(
+            validate_host(&host, &identity, &version, "ABCDE12345")
+                .unwrap_err()
+                .code,
+            "repair_host_version"
+        );
+        host.insert("CFBundleVersion".into(), "3".into());
+        host.insert("CFBundleShortVersionString".into(), "0.2.0".into());
+        validate_host(&host, &identity, &version, "ABCDE12345").unwrap();
+        host.insert("CFBundleShortVersionString".into(), "0.5.5".into());
+        host.insert("CFBundleVersion".into(), "1".into());
+        validate_host(&host, &identity, &version, "ABCDE12345").unwrap();
     }
 
     #[test]

@@ -8,11 +8,11 @@
 
 Pallas iPhone Runner 是 Pallas Agent 的独立 iPhone 操控组件，负责读屏、点按、输入和启动 App。Pallas Agent 在手机上授权一轮操作，Runner 在本机执行。
 
-[下载 Pallas iPhone Runner v1.0.0 和 macOS 安装套件](https://github.com/deemo0666/pallas-iphone-runner/releases/tag/v1.0.0)
+[下载 Pallas iPhone Runner v1.1.0 和 macOS 安装套件](https://github.com/deemo0666/pallas-iphone-runner/releases/tag/v1.1.0)
 
 ## 安装
 
-在 iPhone 上先安装支持「允许电脑操控」的 Pallas Agent。Runner `1.0 (1)` 对应 Pallas Agent `0.5.1`。同团队侧载安装需要 `0.5.1 (18)` 和匹配的共享权限。通过 [DSH 插件](https://github.com/deemo0666/pallas-iphone-dsh-plugin) 的「安装与修复」可以给已装好 Pallas Agent 的 iPhone 签名安装 Runner。
+在 iPhone 上先安装支持「允许电脑操控」的 Pallas Agent。Runner `1.1 (2)` 适用于 Pallas Agent `0.5.1` 及以后的版本。同团队侧载安装需要 `0.5.1 (18)` 或更新版本，并带匹配的共享权限。通过 [DSH 插件](https://github.com/deemo0666/pallas-iphone-dsh-plugin) 的「安装与修复」可以给已装好 Pallas Agent 的 iPhone 签名安装 Runner。
 
 ## 源码与打包
 

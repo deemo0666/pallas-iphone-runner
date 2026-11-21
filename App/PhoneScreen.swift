@@ -12,17 +12,25 @@ struct PhoneCommand: Codable {
     var x2: Int?
     var y2: Int?
     var text: String?
+    /// 全自动: a saved account (SavedAccounts) whose `field` the app types in place of `text`.
+    var credential: String?
+    var field: String?
     var screen: String?
     var picture: Bool
     var navigation: Bool?
     var target: PhoneTarget?
     /// The title and subtitle of Pallas Agent's own Live Activity. The runner shrinks it when it reads them at the top.
     var overlay: [String]?
+    /// For `watch`: how long to wait for a notification before replying with none.
+    var seconds: Int?
+    /// For `watch`: seconds without a next command after which the runner brings Pallas Agent back
+    /// to the front, as iOS has suspended it in the background.
+    var revive: Int?
 
     var writes: Bool { ["tap", "swipe", "type"].contains(action) }
     /// Seconds a `type` may take on top of an ordinary command. Keys go out one after another, so
     /// a page of text takes minutes where a tap takes one or two seconds. The slowest runner in
-    /// use types 7.8 characters a second (wode16, 1050 characters in 134 s); this allows for half
+    /// use types 7.8 characters a second (test iPhone, 1050 characters in 134 s); this allows for half
     /// that, and `iphone-screen.cjs` allows the same.
     var typingSeconds: Int { action == "type" ? ((text?.count ?? 0) + 3) / 4 : 0 }
     /// A touch that starts or ends where the expanded Live Activity covers the target's top bar.
@@ -76,7 +84,7 @@ extension PhoneTarget {
     /// unless a bar floating over the bottom of the page (a search field, a tab bar, a toolbar)
     /// lies over the centre. Such a bar takes the touch, and a little above its own edge too:
     /// on Settings' first page the row 通用 ends under the search bar, a touch on its centre,
-    /// 7 points above the bar, did nothing, and one 20 points above opened it (wode16, iOS 27).
+    /// 7 points above the bar, did nothing, and one 20 points above opened it (test iPhone, iOS 27).
     /// The touch then goes to the middle of what shows above the bar. nil when the centre is off
     /// screen or too little shows: the page has to be scrolled first.
     static func touchPoint(of frame: CGRect, in bounds: CGRect, under bars: [CGRect]) -> CGPoint? {
